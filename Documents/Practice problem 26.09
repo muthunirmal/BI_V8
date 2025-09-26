@@ -1,0 +1,100 @@
+CREATE TABLE Employees1 (
+  Employee_id NUMBER,
+  First_name VARCHAR2(20),
+  Last_name VARCHAR2(20),
+  Salary NUMBER,
+  Manager_id NUMBER,
+  H_date DATE 
+);
+
+
+INSERT INTO Employees1 VALUES(100,'Arjun','Menon',24000,1000, TO_DATE('01-JAN-2015','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(101,'Priya','Sharma',10000,1001, TO_DATE('15-MAR-2020','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(102,'Rahul','Nair',14000,1002, TO_DATE('10-JUN-2018','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(103,'Sneha','Reddy',15000,1003, TO_DATE('05-SEP-2019','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(104,'Vikram','Singh',18000,1004, TO_DATE('20-JUL-2016','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(105,'Meera','Iyer',14000,1005, TO_DATE('25-DEC-2017','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(106,'Karthik','Rao',11000,1006, TO_DATE('30-NOV-2021','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(107,'Divya','Patel',10000,1007, TO_DATE('12-FEB-2022','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(108,'Siddharth','Das',20000,1008, TO_DATE('08-AUG-2014','DD-MON-YYYY'));
+INSERT INTO Employees1 VALUES(109,'Anjali','Joshi',21200,1009, TO_DATE('18-MAY-2013','DD-MON-YYYY'));
+
+
+----1. Display the running total of employee salary---------------------------------
+
+select employee_id, first_name, salary,
+       sum(salary) over (order by employee_id) as running_total
+from employees1;
+
+
+---- 2. 2nd highest salary-----------------------------------------------------------
+
+select max(salary) as second_highest
+from employees1
+where salary < (select max(salary) from employees1);
+
+
+----3. cte to find avg(salary) group by name-----------------------------------------
+
+with avg_salary as (
+  select first_name, avg(salary) as avg_salary from employees1
+  group by first_name)
+select * from avg_salary;
+
+
+-----4.list employees along with their manager (self join)----------------------------
+
+select e.first_name as employee, m.first_name as manager
+from employees e
+left join employees m on e.manager_id = m.employee_id;
+
+-------5.update salary by given percentage for a department----stored procedure------
+
+create or replace procedure update_salary_by_percent (
+    p_manager_id in number,
+    p_percent in number)
+is
+begin
+    update employees1
+    set salary = salary + (salary * p_percent / 100)
+    where manager_id = p_manager_id;
+    commit;
+end;
+
+----6.departments with average salary greater than 10000---
+
+select manager_id, avg(salary) as avg_salary
+from employees1
+group by manager_id
+having avg(salary) > 10000;
+
+
+---7.employees who don’t have a manager----
+
+select first_name from employees1
+where manager_id is null;
+
+
+---8.find employees whoes hired more than 5 years--------
+
+with act_emp as (
+  select first_name, h_date from employees1)
+select first_name
+from act_emp
+where h_date < add_months(sysdate, -60);
+
+
+----9.top 3 paid employees per department using window function----
+
+SELECT employee_id, first_name, salary, manager_id
+FROM (
+  SELECT employee_id, first_name, salary, manager_id,
+         RANK() OVER (PARTITION BY manager_id ORDER BY salary DESC) AS rank
+  FROM employees1) ranked
+WHERE rank <= 3;
+
+
+--10.salary between 5000 and 1000---------
+select first_name, salary
+from employees
+where salary between 5000 and 10000;
